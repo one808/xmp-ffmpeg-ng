@@ -25,13 +25,16 @@ export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_LIBDIR=
 FFLIBS=$(pkg-config --static --libs libavformat libavcodec libswresample libavutil)
 echo "link libs: $FFLIBS"
-$TRIPLE-gcc -shared -o build/xmp-ffmpeg.dll build/xmp-ffmpeg.o \
-	-Wl,--kill-at $FFLIBS \
+# g++ driver + -static-libstdc++/-static-libgcc: the dep .pc files pull in
+# -lstdc++ (gme is C++), and we must NOT end up importing libstdc++-6.dll /
+# libgcc_s_*.dll - everything goes into this single DLL.
+$TRIPLE-g++ -shared -o build/xmp-ffmpeg.dll build/xmp-ffmpeg.o \
+	-Wl,--kill-at -static-libstdc++ -static-libgcc $FFLIBS \
 	-lssp -latomic
 
-# verify the exact export name XMPlay looks for
-if ! $TRIPLE-objdump -p build/xmp-ffmpeg.dll | grep -q "\[XMPIN_GetInterface\]"; then
-	echo "ERROR: export 'XMPIN_GetInterface' missing:"; $TRIPLE-objdump -p build/xmp-ffmpeg.dll | grep "\["; exit 1
+# verify the exact export name XMPlay looks for (objdump lists "[index] name")
+if ! $TRIPLE-objdump -p build/xmp-ffmpeg.dll | grep -qw "XMPIN_GetInterface"; then
+	echo "ERROR: export 'XMPIN_GetInterface' missing:"; $TRIPLE-objdump -p build/xmp-ffmpeg.dll | sed -n '/Export Address Table/,/PE File Base Relocations/p'; exit 1
 fi
 echo "export check: XMPIN_GetInterface OK"
 
