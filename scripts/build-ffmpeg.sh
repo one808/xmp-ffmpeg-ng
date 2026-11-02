@@ -215,7 +215,7 @@ if grep -q 'WC_ERR_INVALID_CHARS' "$FFSRC/libavutil/wchar_filename.h"; then
 	echo "patched wchar_filename.h: WC_ERR_INVALID_CHARS -> 0 (XP-safe)"
 fi
 
-if [[ ! -f $PREFIX/lib/libavformat.a ]]; then
+if [[ ! -f $PREFIX/.ffmpeg-xmp-config-v2 ]]; then
 	log "generating component lists (audio decoders only)"
 	eval "$(python3 scripts/gen-component-lists.py "$FFSRC" | grep '^[A-Z]*=')"
 	log "audio decoders: $(tr ',' '\n' <<<"$DECODERS" | wc -l), demuxers: $(tr ',' '\n' <<<"$DEMUXERS" | wc -l)"
@@ -239,11 +239,15 @@ if [[ ! -f $PREFIX/lib/libavformat.a ]]; then
 		--disable-avdevice --disable-avfilter --disable-swscale \
 		--disable-programs --disable-doc --disable-debug \
 		--disable-bcrypt --disable-w32threads \
+		--disable-schannel \
 		--enable-gpl --enable-version3 \
 		--enable-nonfree \
 		--extra-version=xmp )
 	log "building FFmpeg"
 	( cd "$FFSRC" && make -j$JOBS && make install )
+	# config marker - bump the suffix whenever the configure options change so
+	# stale cached FFmpeg builds get rebuilt with the new configuration.
+	touch "$PREFIX/.ffmpeg-xmp-config-v2"
 fi
 
 log "done - FFmpeg libs in $PREFIX/lib"
