@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            autoconf automake bison bzip2 cmake curl ed flex g++ gcc git gperf libtool \
+            autoconf automake bison bzip2 cmake curl cvs ed flex g++ gcc git gperf libtool \
             libtool-bin make texinfo patch pax pkg-config python3 subversion unzip wget \
             xz-utils yasm nasm meson ninja-build gettext autopoint ca-certificates p7zip-full
 
