@@ -85,5 +85,13 @@ bash scripts/check-xp-compat.sh build/xmp-ffmpeg.dll
 
 ## License
 
-GPL v3 or later (the statically linked FFmpeg is built with
-`--enable-gpl --enable-version3`). See `LICENSE`.
+GPL v3 or later (FFmpeg is built with `--enable-gpl --enable-version3`).
+See `LICENSE`.
+
+Note: the build also links **libfdk-aac** statically, which is under the
+[FDK AAC license](https://github.com/mstorsjo/fdk-aac) (not GPL-compatible,
+hence FFmpeg's `--enable-nonfree` - FFmpeg labels such builds conservatively
+"unredistributable"; the FDK license itself permits binary redistribution
+with the license notice). If you want a strictly GPL-pure build, remove
+`--enable-libfdk-aac` from `scripts/build-ffmpeg.sh` - AAC decoding then uses
+FFmpeg's own decoder, which covers standard AAC-LC/SBR/PS content.

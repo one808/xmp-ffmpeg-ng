@@ -228,6 +228,7 @@ if [[ ! -f $PREFIX/lib/libavformat.a ]]; then
 		--disable-programs --disable-doc --disable-debug \
 		--disable-bcrypt --disable-w32threads \
 		--enable-gpl --enable-version3 \
+		--enable-nonfree \
 		--extra-version=xmp )
 	log "building FFmpeg"
 	( cd "$FFSRC" && make -j$JOBS && make install )
