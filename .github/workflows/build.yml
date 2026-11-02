@@ -10,7 +10,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write # for the 'latest' release upload
 
 concurrency:
   group: xmp-ffmpeg-build
@@ -70,3 +70,13 @@ jobs:
             build/xmp-ffmpeg.dll
             README.md
           retention-days: 30
+
+      - name: Publish "latest" release (moving tag)
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -y --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+          gh release create latest build/xmp-ffmpeg.dll README.md --repo "$GITHUB_REPOSITORY" \
+            --title "xmp-ffmpeg (latest build)" \
+            --notes "Auto-built by GitHub Actions. Drop xmp-ffmpeg.dll into the XMPlay folder. All FFmpeg libraries are linked statically - no DLL dependencies."
