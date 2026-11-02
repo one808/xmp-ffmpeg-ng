@@ -17,14 +17,23 @@ $TRIPLE-g++ $CFLAGS_XP $DEFS_XP -Os -fno-exceptions -fno-rtti \
 	-c src/xmp-ffmpeg.cpp -o build/xmp-ffmpeg.o
 
 echo "== linking xmp-ffmpeg.dll (static) =="
+# pkg-config resolves the FULL static dependency set (incl. Windows system libs
+# like -ladvapi32 for the wincrypt fallback) from the FFmpeg/dep .pc files.
+# Note: our toolchain is the win32 thread model + pthreads4w => the library is
+# -lpthread (there is no -lwinpthread in this toolchain).
+export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR=
+FFLIBS=$(pkg-config --static --libs libavformat libavcodec libswresample libavutil)
+echo "link libs: $FFLIBS"
 $TRIPLE-gcc -shared -o build/xmp-ffmpeg.dll build/xmp-ffmpeg.o \
-	-Wl,--kill-at \
-	-L"$PREFIX/lib" -Wl,--start-group \
-	-lavformat -lavcodec -lswresample -lavutil \
-	-lfdk-aac -lopencore-amrnb -lopencore-amrwb -lgme -lcodec2 \
-	-lz -lbz2 -llzma \
-	-Wl,--end-group \
-	-lwinpthread -lssp -lws2_32 -lole32 -luuid -lshlwapi -lpsapi -lwinmm -lm -latomic
+	-Wl,--kill-at $FFLIBS \
+	-lssp -latomic
+
+# verify the exact export name XMPlay looks for
+if ! $TRIPLE-objdump -p build/xmp-ffmpeg.dll | grep -q "\[XMPIN_GetInterface\]"; then
+	echo "ERROR: export 'XMPIN_GetInterface' missing:"; $TRIPLE-objdump -p build/xmp-ffmpeg.dll | grep "\["; exit 1
+fi
+echo "export check: XMPIN_GetInterface OK"
 
 $TRIPLE-strip --strip-unneeded build/xmp-ffmpeg.dll
 ls -la build/xmp-ffmpeg.dll
