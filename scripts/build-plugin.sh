@@ -6,7 +6,7 @@ CROSS=$PWD/sandbox/cross_compilers/mingw-w64-i686
 TRIPLE=i686-w64-mingw32
 PREFIX=$CROSS/$TRIPLE
 CFLAGS_XP="-O2 -march=pentium3 -mtune=athlon-xp -mfpmath=sse -msse"
-DEFS_XP="-D_WIN32_WINNT=0x0501"
+DEFS_XP=""
 
 export PATH=$CROSS/bin:$PATH
 mkdir -p build

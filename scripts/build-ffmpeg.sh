@@ -22,8 +22,12 @@ PREFIX=$CROSS/$TRIPLE
 SRC=$SANDBOX/src
 JOBS=${JOBS:-$(nproc)}
 # Same target flags as our XP FFmpeg builds (SSE-only baseline, Athlon XP tuned).
+# NOTE: no _WIN32_WINNT define - same as the main recipe. An explicit 0x0501
+# hides Vista+ declarations that FFmpeg 9's own sources reference (e.g.
+# WC_ERR_INVALID_CHARS in libavutil/wchar_filename.h) and breaks the build.
+# XP compatibility is enforced by the patches + the PE import audit instead.
 CFLAGS_XP="-O2 -march=pentium3 -mtune=athlon-xp -mfpmath=sse -msse"
-DEFS_XP="-D_WIN32_WINNT=0x0501"
+DEFS_XP=""
 
 export PATH=$CROSS/bin:$PATH
 export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
@@ -201,6 +205,14 @@ if [[ ! -f $FFSRC/.xp-patched ]]; then
 	  patch -p1 < "$PATCHES/0002-windows-xp-compatible-CancelIoEx.patch"
 	  patch -p1 < "$PATCHES/0003-windows-xp-compatible-wcscp.patch"
 	  touch .xp-patched )
+fi
+
+# XP hardening beyond the main recipe: wchartocp() passes WC_ERR_INVALID_CHARS
+# (Vista+) to WideCharToMultiByte; XP rejects unknown flags for CP_UTF8, so the
+# wchar<->utf8 filename helpers would fail there. Force legacy conversion (0).
+if grep -q 'WC_ERR_INVALID_CHARS' "$FFSRC/libavutil/wchar_filename.h"; then
+	sed -i 's/WC_ERR_INVALID_CHARS/0x0/g' "$FFSRC/libavutil/wchar_filename.h"
+	echo "patched wchar_filename.h: WC_ERR_INVALID_CHARS -> 0 (XP-safe)"
 fi
 
 if [[ ! -f $PREFIX/lib/libavformat.a ]]; then
