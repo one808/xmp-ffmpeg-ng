@@ -154,17 +154,23 @@ if [[ ! -f $PREFIX/lib/libcodec2.a ]]; then
 	(
 		cd "$SRC/codec2_git"
 		sed -i '/install(SCRIPT ${CMAKE_BINARY_DIR}\/cmake\/GetDependencies.cmake)/d' CMakeLists.txt
-		# codec2 builds a NATIVE codegen helper (generate_codebook). The exported
-		# cross CC would poison that sub-build (it emits generate_codebook.exe and
-		# the install copy then fails) - force the native compiler + no cross CFLAGS.
+		# codec2 builds a NATIVE codegen helper (generate_codebook). Two cross
+		# contaminations must BOTH be cut here:
+		#  1. the exported cross CC would turn the helper into generate_codebook.exe
+		#     (the install copy looks for the extension-less name and fails),
+		#  2. the exported cross CFLAGS (-march=pentium3...) reach the native
+		#     compiler's probe compile and 64-bit gcc rejects them outright.
+		# Force native compilers + empty flags via CMAKE_ARGS, and strip the
+		# environment for the configure/build steps (explicit -D flags below keep
+		# the cross flags for the real codec2 build).
 		sed -i '/CMAKE_ARGS -DCMAKE_C_FLAGS=/d' src/CMakeLists.txt
 		sed -i '/ExternalProject_Add(codec2_native/a\       CMAKE_ARGS -DCMAKE_C_FLAGS= -DCMAKE_CXX_FLAGS= -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++' src/CMakeLists.txt
 		mkdir -p build && cd build
-		cmake .. -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=$TRIPLE-gcc \
+		env -u CFLAGS -u CXXFLAGS cmake .. -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=$TRIPLE-gcc \
 			-DCMAKE_CXX_COMPILER=$TRIPLE-g++ -DCMAKE_RC_COMPILER=$TRIPLE-windres \
 			-DBUILD_SHARED_LIBS=0 -DUNITTEST=0 -DLPCNET=0 \
 			-DCMAKE_INSTALL_PREFIX="$PREFIX" -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
-		make -j$JOBS && make install
+		env -u CFLAGS -u CXXFLAGS make -j$JOBS && make install
 	)
 fi
 
