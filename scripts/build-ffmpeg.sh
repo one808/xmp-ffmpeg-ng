@@ -154,10 +154,11 @@ if [[ ! -f $PREFIX/lib/libcodec2.a ]]; then
 	(
 		cd "$SRC/codec2_git"
 		sed -i '/install(SCRIPT ${CMAKE_BINARY_DIR}\/cmake\/GetDependencies.cmake)/d' CMakeLists.txt
-		# codec2 builds a NATIVE codegen helper (generate_codebook) - keep host CFLAGS
-		# away from it (same fix as ffmpeg-windows-build-helpers)
-		grep -q 'CMAKE_ARGS -DCMAKE_C_FLAGS=' src/CMakeLists.txt || \
-			sed -i '/ExternalProject_Add(codec2_native/a\       CMAKE_ARGS -DCMAKE_C_FLAGS= -DCMAKE_CXX_FLAGS=' src/CMakeLists.txt
+		# codec2 builds a NATIVE codegen helper (generate_codebook). The exported
+		# cross CC would poison that sub-build (it emits generate_codebook.exe and
+		# the install copy then fails) - force the native compiler + no cross CFLAGS.
+		sed -i '/CMAKE_ARGS -DCMAKE_C_FLAGS=/d' src/CMakeLists.txt
+		sed -i '/ExternalProject_Add(codec2_native/a\       CMAKE_ARGS -DCMAKE_C_FLAGS= -DCMAKE_CXX_FLAGS= -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++' src/CMakeLists.txt
 		mkdir -p build && cd build
 		cmake .. -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_C_COMPILER=$TRIPLE-gcc \
 			-DCMAKE_CXX_COMPILER=$TRIPLE-g++ -DCMAKE_RC_COMPILER=$TRIPLE-windres \
