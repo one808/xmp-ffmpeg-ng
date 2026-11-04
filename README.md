@@ -56,7 +56,22 @@ on every push, or manually via *Run workflow*:
    of the import table for known Vista+-only APIs — the same check that
    validated our XP FFmpeg builds.
 
-The artifact from the workflow is the finished `xmp-ffmpeg.dll`.
+The artifact from the workflow is the finished `xmp-ffmpeg.dll`, in a
+versioned package (`xmp-ffmpeg-<version>`).
+
+## Releases & updates
+
+The version lives in the `VERSION` file (single source of truth) and is
+embedded into the DLL as a standard Windows **VERSIONINFO resource** (also
+shown in the plugin's About dialog) — XMPlay reads this for its plugin
+update notifications. Every successful `main` build publishes:
+
+- a GitHub Release **`latest`** (moving tag) and a permanent **`v<version>`**
+  release, both carrying `xmp-ffmpeg-<version>.zip` (DLL + README);
+- a workflow artifact `xmp-ffmpeg-<version>`.
+
+To release a new version: bump `VERSION`, push, and post the new version in
+the un4seen forum thread so it can be added to XMPlay's update notifications.
 
 Local build (Linux with the same apt packages as the workflow):
 

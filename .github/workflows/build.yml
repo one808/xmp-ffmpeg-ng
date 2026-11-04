@@ -62,21 +62,32 @@ jobs:
           path: sandbox
           key: sandbox-${{ hashFiles('scripts/build-ffmpeg.sh', 'scripts/gen-component-lists.py') }}-${{ github.run_id }}
 
+      - name: Read version
+        if: success()
+        id: ver
+        run: |
+          VER=$(tr -d ' \n' < VERSION)
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+
       - name: Upload plugin
         uses: actions/upload-artifact@v4
         with:
-          name: xmp-ffmpeg
+          name: xmp-ffmpeg-${{ steps.ver.outputs.ver }}
           path: |
             build/xmp-ffmpeg.dll
             README.md
           retention-days: 30
 
-      - name: Publish "latest" release (moving tag)
+      - name: Publish GitHub Release (latest + v<version>)
         if: success() && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete latest -y --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
-          gh release create latest build/xmp-ffmpeg.dll README.md --repo "$GITHUB_REPOSITORY" \
-            --title "xmp-ffmpeg (latest build)" \
-            --notes "Auto-built by GitHub Actions. Drop xmp-ffmpeg.dll into the XMPlay folder. All FFmpeg libraries are linked statically - no DLL dependencies."
+          VER=${{ steps.ver.outputs.ver }}
+          7z a "xmp-ffmpeg-$VER.zip" build/xmp-ffmpeg.dll README.md
+          for TAG in latest "v$VER"; do
+            gh release delete "$TAG" -y --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+            gh release create "$TAG" "xmp-ffmpeg-$VER.zip" --repo "$GITHUB_REPOSITORY" \
+              --title "xmp-ffmpeg $VER" \
+              --notes "Auto-built by GitHub Actions. Unzip and drop xmp-ffmpeg.dll into the XMPlay folder. All FFmpeg libraries are linked statically - no DLL dependencies."
+          done

@@ -26,7 +26,11 @@ extern "C" {
 }
 
 #define PLUGIN_NAME "xmp-ffmpeg"
-#define PLUGIN_VER  "1.0.0"
+// version is injected by scripts/build-plugin.sh from the VERSION file
+#ifndef XMP_FFMPEG_VERSION
+#define XMP_FFMPEG_VERSION "1.0.1"
+#endif
+#define PLUGIN_VER  XMP_FFMPEG_VERSION
 
 static XMPFUNC_IN   *xmpfin;
 static XMPFUNC_MISC *xmpfmisc;
