@@ -78,16 +78,22 @@ jobs:
             README.md
           retention-days: 30
 
-      - name: Publish GitHub Release (latest + v<version>)
+      - name: Publish GitHub Release (add-only, never touches old releases)
         if: success() && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VER=${{ steps.ver.outputs.ver }}
+          RUN=${{ github.run_number }}
           7z a "xmp-ffmpeg-$VER.zip" build/xmp-ffmpeg.dll README.md
-          for TAG in latest "v$VER"; do
-            gh release delete "$TAG" -y --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
-            gh release create "$TAG" "xmp-ffmpeg-$VER.zip" --repo "$GITHUB_REPOSITORY" \
-              --title "xmp-ffmpeg $VER" \
-              --notes "Auto-built by GitHub Actions. Unzip and drop xmp-ffmpeg.dll into the XMPlay folder. All FFmpeg libraries are linked statically - no DLL dependencies."
-          done
+          # ADD-ONLY: never delete/modify existing releases. Tag = v<version>,
+          # or v<version>.<run> when that version already has a release.
+          TAG="v$VER"
+          TITLE="xmp-ffmpeg $VER"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            TAG="v$VER.$RUN"
+            TITLE="xmp-ffmpeg $VER (build $RUN)"
+          fi
+          gh release create "$TAG" "xmp-ffmpeg-$VER.zip" --repo "$GITHUB_REPOSITORY" \
+            --title "$TITLE" \
+            --notes "Auto-built by GitHub Actions (run $RUN). Unzip and drop xmp-ffmpeg.dll into the XMPlay folder. All FFmpeg libraries are linked statically - no DLL dependencies."
